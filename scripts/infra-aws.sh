@@ -8,16 +8,13 @@ REGION="us-east-1"
 log() { echo "[INFO] $1"; }
 error() { echo "[ERROR] $1"; exit 1; }
 
+# 1. Provisionar S3
 provision_s3() {
     log "Provisioning S3 bucket: $DOMAIN"
     if ! aws s3api head-bucket --bucket "$DOMAIN" 2>/dev/null; then
         aws s3 mb "s3://$DOMAIN" --region "$REGION"
         aws s3 website "s3://$DOMAIN" --index-document index.html --error-document index.html
-        
-        aws s3api put-public-access-block \
-            --bucket "$DOMAIN" \
-            --public-access-block-configuration "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
-            
+        aws s3api put-public-access-block --bucket "$DOMAIN" --public-access-block-configuration "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
         local policy="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"PublicReadGetObject\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"s3:GetObject\",\"Resource\":\"arn:aws:s3:::$DOMAIN/*\"}]}"
         aws s3api put-bucket-policy --bucket "$DOMAIN" --policy "$policy"
     else
@@ -25,25 +22,54 @@ provision_s3() {
     fi
 }
 
+# 2. Criar Hosted Zone (Necessário antes do ACM)
+provision_zone() {
+    log "Ensuring Hosted Zone exists for $DOMAIN"
+    local zone_id
+    zone_id=$(aws route53 list-hosted-zones-by-name --dns-name "$DOMAIN" --query "HostedZones[?Name=='$DOMAIN.'].Id" --output text | cut -d'/' -f3)
+    
+    if [[ -z "$zone_id" || "$zone_id" == "None" ]]; then
+        zone_id=$(aws route53 create-hosted-zone --name "$DOMAIN" --caller-reference "$(date +%s)" --query HostedZone.Id --output text | cut -d'/' -f3)
+        log "Hosted Zone created: $zone_id"
+    else
+        log "Hosted Zone already exists: $zone_id"
+    fi
+    echo "$zone_id" > .zone_id
+    aws route53 get-hosted-zone --id "$zone_id" --query DelegationSet.NameServers --output json > .ns_records
+}
+
+# 3. Solicitar ACM e Validar
 provision_acm() {
-    log "Provisioning ACM Certificate for $DOMAIN"
+    log "Requesting ACM Certificate for $DOMAIN"
     local cert_arn
     cert_arn=$(aws acm list-certificates --region "$REGION" --query "CertificateSummaryList[?DomainName=='$DOMAIN'].CertificateArn" --output text)
     
     if [[ -z "$cert_arn" || "$cert_arn" == "None" ]]; then
-        cert_arn=$(aws acm request-certificate \
-            --domain-name "$DOMAIN" \
-            --validation-method DNS \
-            --region "$REGION" \
-            --query CertificateArn --output text)
+        cert_arn=$(aws acm request-certificate --domain-name "$DOMAIN" --validation-method DNS --region "$REGION" --query CertificateArn --output text)
         log "Certificate requested: $cert_arn"
-        log "Please ensure DNS validation is complete."
-    else
-        log "Certificate already exists: $cert_arn"
     fi
     echo "$cert_arn" > .acm_arn
+
+    log "Waiting for validation records to be available..."
+    sleep 10
+    
+    local validation_data
+    validation_data=$(aws acm describe-certificate --certificate-arn "$cert_arn" --region "$REGION" --query "Certificate.DomainValidationOptions[0].ResourceRecord" --output json)
+    
+    local name=$(echo "$validation_data" | jq -r .Name)
+    local value=$(echo "$validation_data" | jq -r .Value)
+    local zone_id=$(cat .zone_id)
+
+    log "Adding validation record to Route53..."
+    local change_batch="{\"Changes\": [{\"Action\": \"UPSERT\", \"ResourceRecordSet\": {\"Name\": \"$name\", \"Type\": \"CNAME\", \"TTL\": 60, \"ResourceRecords\": [{\"Value\": \"$value\"}]}}]}"
+    aws route53 change-resource-record-sets --hosted-zone-id "$zone_id" --change-batch "$change_batch"
+
+    log "Waiting for certificate validation (this can take up to 5-10 mins)..."
+    aws acm wait certificate-validated --certificate-arn "$cert_arn" --region "$REGION"
+    log "Certificate is VALIDATED."
 }
 
+# 4. Criar CloudFront (Só roda após ACM Issued)
 provision_cf() {
     log "Provisioning CloudFront for $DOMAIN"
     local dist_id
@@ -60,9 +86,7 @@ provision_cf() {
                 \"Items\": [{
                     \"Id\": \"S3-$DOMAIN\",
                     \"DomainName\": \"$DOMAIN.s3-website-$REGION.amazonaws.com\",
-                    \"CustomOriginConfig\": {
-                        \"HTTPPort\": 80, \"HTTPSPort\": 443, \"OriginProtocolPolicy\": \"http-only\"
-                    }
+                    \"CustomOriginConfig\": { \"HTTPPort\": 80, \"HTTPSPort\": 443, \"OriginProtocolPolicy\": \"http-only\" }
                 }]
             },
             \"DefaultCacheBehavior\": {
@@ -87,18 +111,10 @@ provision_cf() {
     fi
 }
 
-provision_route53() {
-    log "Provisioning Route53 for $DOMAIN"
-    local zone_id
-    zone_id=$(aws route53 list-hosted-zones-by-name --dns-name "$DOMAIN" --query "HostedZones[?Name=='$DOMAIN.'].Id" --output text | cut -d'/' -f3)
-    
-    if [[ -z "$zone_id" ]]; then
-        zone_id=$(aws route53 create-hosted-zone --name "$DOMAIN" --caller-reference "$(date +%s)" --query HostedZone.Id --output text | cut -d'/' -f3)
-        log "Hosted Zone created: $zone_id"
-    else
-        log "Hosted Zone already exists: $zone_id"
-    fi
-    
+# 5. Criar Alias DNS para CloudFront
+provision_dns_alias() {
+    log "Creating Route53 Alias for CloudFront"
+    local zone_id=$(cat .zone_id)
     local cf_domain=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$DOMAIN'].DomainName" --output text)
     
     local change_batch="{
@@ -107,15 +123,13 @@ provision_route53() {
         ]
     }"
     aws route53 change-resource-record-sets --hosted-zone-id "$zone_id" --change-batch "$change_batch"
-    
-    # Output NameServers for delegation
-    aws route53 get-hosted-zone --id "$zone_id" --query DelegationSet.NameServers --output json > .ns_records
 }
 
 case "$COMMAND" in
     provision_s3) provision_s3 ;;
+    provision_zone) provision_zone ;;
     provision_acm) provision_acm ;;
     provision_cf) provision_cf ;;
-    provision_route53) provision_route53 ;;
-    *) error "Usage: $0 {provision_s3|provision_acm|provision_cf|provision_route53}" ;;
+    provision_dns_alias) provision_dns_alias ;;
+    *) error "Usage: $0 {provision_s3|provision_zone|provision_acm|provision_cf|provision_dns_alias}" ;;
 esac

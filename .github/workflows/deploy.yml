@@ -16,7 +16,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. ACM Certificate (Production Account)
+      # 1. Criar Hosted Zone (Produção)
+      - name: Configure Production AWS Credentials (Zone)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_PROD_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_PROD_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Create Hosted Zone
+        run: |
+          chmod +x ./scripts/infra-aws.sh
+          ./scripts/infra-aws.sh provision_zone
+
+      # 2. Delegação DNS (Shared Account)
+      - name: Configure Shared AWS Credentials (NS)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_SHARED_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SHARED_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: DNS Delegation
+        run: |
+          PARENT_DOMAIN=$(echo $DOMAIN | cut -d'.' -f2-3)
+          ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name "$PARENT_DOMAIN" --query "HostedZones[?Name=='$PARENT_DOMAIN.'].Id" --output text | cut -d'/' -f3)
+          NS_RECORDS=$(cat .ns_records)
+          CHANGES=$(echo $NS_RECORDS | jq -c '[.[] | {Value: .}]')
+          BATCH="{\"Changes\": [{\"Action\": \"UPSERT\", \"ResourceRecordSet\": {\"Name\": \"$DOMAIN.\", \"Type\": \"NS\", \"TTL\": 300, \"ResourceRecords\": $CHANGES}}]}"
+          aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$BATCH"
+
+      # 3. ACM (Produção) - Requer que a delegação já esteja propagando
       - name: Configure Production AWS Credentials (ACM)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -24,40 +54,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_PROD_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Provision ACM
-        run: |
-          chmod +x ./scripts/infra-aws.sh
-          ./scripts/infra-aws.sh provision_acm
+      - name: Provision & Validate ACM
+        run: ./scripts/infra-aws.sh provision_acm
 
-      # 2. S3 & CloudFront (Production Account)
+      # 4. S3 & CloudFront (Produção) - Agora com Certificado Válido
       - name: Provision S3 & CF
         run: |
           ./scripts/infra-aws.sh provision_s3
           ./scripts/infra-aws.sh provision_cf
 
-      # 3. Route53 (Production Account)
-      - name: Provision Route53 (Prod Zone)
-        run: ./scripts/infra-aws.sh provision_route53
-
-      # 4. Route53 DNS Delegation (Shared Account)
-      - name: Configure Shared AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_SHARED_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SHARED_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: DNS Delegation (Shared Account)
-        run: |
-          # Logic to update the parent domain in Shared account with Prod NS records
-          PARENT_DOMAIN=$(echo $DOMAIN | cut -d'.' -f2-3)
-          ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name "$PARENT_DOMAIN" --query "HostedZones[?Name=='$PARENT_DOMAIN.'].Id" --output text | cut -d'/' -f3)
-          NS_RECORDS=$(cat .ns_records)
-          
-          # Create change batch for NS records
-          CHANGES=$(echo $NS_RECORDS | jq -c '[.[] | {Value: .}]')
-          BATCH="{\"Changes\": [{\"Action\": \"UPSERT\", \"ResourceRecordSet\": {\"Name\": \"$DOMAIN.\", \"Type\": \"NS\", \"TTL\": 300, \"ResourceRecords\": $CHANGES}}]}"
-          aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$BATCH"
+      # 5. Route53 Alias (Produção)
+      - name: Provision DNS Alias
+        run: ./scripts/infra-aws.sh provision_dns_alias
 
   deploy:
     name: Build and Deploy
