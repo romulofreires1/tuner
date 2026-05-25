@@ -36,3 +36,5 @@ next-env.d.ts
 .zone_id
 .acm_arn
 .ns_records
+
+tasks
