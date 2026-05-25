@@ -1,0 +1,88 @@
+name: Deploy Static App (Novello)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOMAIN: ${{ vars.DOMAIN }}
+  AWS_REGION: us-east-1
+
+jobs:
+  infra:
+    name: Provision Infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. ACM Certificate (Production Account)
+      - name: Configure Production AWS Credentials (ACM)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_PROD_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_PROD_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Provision ACM
+        run: |
+          chmod +x ./scripts/infra-aws.sh
+          ./scripts/infra-aws.sh provision_acm
+
+      # 2. S3 & CloudFront (Production Account)
+      - name: Provision S3 & CF
+        run: |
+          ./scripts/infra-aws.sh provision_s3
+          ./scripts/infra-aws.sh provision_cf
+
+      # 3. Route53 (Production Account)
+      - name: Provision Route53 (Prod Zone)
+        run: ./scripts/infra-aws.sh provision_route53
+
+      # 4. Route53 DNS Delegation (Shared Account)
+      - name: Configure Shared AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_SHARED_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SHARED_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: DNS Delegation (Shared Account)
+        run: |
+          # Logic to update the parent domain in Shared account with Prod NS records
+          PARENT_DOMAIN=$(echo $DOMAIN | cut -d'.' -f2-3)
+          ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name "$PARENT_DOMAIN" --query "HostedZones[?Name=='$PARENT_DOMAIN.'].Id" --output text | cut -d'/' -f3)
+          NS_RECORDS=$(cat .ns_records)
+          
+          # Create change batch for NS records
+          CHANGES=$(echo $NS_RECORDS | jq -c '[.[] | {Value: .}]')
+          BATCH="{\"Changes\": [{\"Action\": \"UPSERT\", \"ResourceRecordSet\": {\"Name\": \"$DOMAIN.\", \"Type\": \"NS\", \"TTL\": 300, \"ResourceRecords\": $CHANGES}}]}"
+          aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$BATCH"
+
+  deploy:
+    name: Build and Deploy
+    needs: infra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      
+      - name: Configure Deploy AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEPLOY_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEPLOY_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Sync S3
+        run: aws s3 sync out/ s3://${{ env.DOMAIN }} --delete
+        
+      - name: Invalidate CloudFront
+        run: |
+          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='${{ env.DOMAIN }}'].Id" --output text)
+          aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
