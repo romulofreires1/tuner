@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Stem / Pendulum -->
+  <rect x="28" y="24" width="8" height="32" rx="4" fill="#f35eb2" />
+  <!-- Top / Fork -->
+  <path d="M12 16C12 24 20 28 32 28C44 28 52 24 52 16" stroke="#60f5c1" stroke-width="8" stroke-linecap="round" />
+  <!-- Pivot point -->
+  <circle cx="32" cy="48" r="4" fill="#1a122e" />
+</svg>

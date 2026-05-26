@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" fill="none">
+  <g transform="translate(8, 4)">
+    <rect x="28" y="24" width="8" height="32" rx="4" fill="#000000" />
+    <path d="M12 16C12 24 20 28 32 28C44 28 52 24 52 16" stroke="#000000" stroke-width="8" stroke-linecap="round" />
+    <circle cx="32" cy="48" r="4" fill="#ffffff" />
+  </g>
+  <text x="84" y="52" fill="#000000" font-family="system-ui, sans-serif" font-size="48" font-weight="900" letter-spacing="-0.05em">TUNER</text>
+</svg>

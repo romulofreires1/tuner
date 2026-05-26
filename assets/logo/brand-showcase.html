@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUNER - Brand Showcase</title>
+    <style>
+        :root {
+            --bg-primary: #1a122e;
+            --text-primary: #fbfaff;
+            --accent-magenta: #f35eb2;
+            --accent-mint: #60f5c1;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 4rem 2rem;
+            line-height: 1.5;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        header { margin-bottom: 4rem; text-align: center; }
+        .hero-logo { width: 400px; margin-bottom: 2rem; }
+        
+        section { margin-bottom: 6rem; }
+        h2 { 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.3em; 
+            color: var(--accent-mint);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .card img { max-width: 100%; height: auto; }
+        .card.light { background: #fbfaff; color: #1a122e; }
+
+        .palette { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .color-swatch {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .rationale { font-size: 1.2rem; max-width: 600px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="logo-full.svg" alt="TUNER Full Logo" class="hero-logo">
+            <p class="rationale">A professional-grade identity for the modern musician. Combining the stability of a tuning fork with the precision of a metronome pendulum.</p>
+        </header>
+
+        <section>
+            <h2>Logo Variants</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Mark</h3>
+                    <img src="logo-mark.svg" alt="Mark" style="width: 64px;">
+                </div>
+                <div class="card">
+                    <h3>Icon</h3>
+                    <img src="logo-icon.svg" alt="Icon" style="width: 128px; border-radius: 24px;">
+                </div>
+                <div class="card light">
+                    <h3>Black (on Light)</h3>
+                    <img src="logo-black.svg" alt="Black Logo">
+                </div>
+                <div class="card">
+                    <h3>White (on Dark)</h3>
+                    <img src="logo-white.svg" alt="White Logo">
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Color Palette</h2>
+            <div class="palette">
+                <div class="color-swatch" style="background: #1a122e; color: white;">#1A122E<br>Midnight</div>
+                <div class="color-swatch" style="background: #f35eb2; color: white;">#F35EB2<br>Magenta</div>
+                <div class="color-swatch" style="background: #60f5c1; color: black;">#60F5C1<br>Mint</div>
+                <div class="color-swatch" style="background: #fbfaff; color: black;">#FBFAFF<br>Pristine</div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Typography</h2>
+            <div style="font-size: 4rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1;">
+                TUNER<br>
+                ABCDEFGHIJKLM<br>
+                NOPQRSTUVWXYZ
+            </div>
+            <p>System UI Sans-Serif Stack (Inter/San Francisco/Segoe UI)</p>
+        </section>
+    </div>
+</body>
+</html>
