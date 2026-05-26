@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAppStore } from '@/stores/useAppStore';
+import { translations } from '@/lib/translations';
 
 interface TunerGaugeProps {
   cents: number;
@@ -12,6 +14,8 @@ interface TunerGaugeProps {
 
 export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGaugeProps) {
   const [mounted, setMounted] = useState(false);
+  const { language } = useAppStore();
+  const t = translations[language];
 
   useEffect(() => {
     setMounted(false);
@@ -30,11 +34,11 @@ export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGauge
   const mutedColor = 'oklch(30% 0.08 270)'; // Dark Track
 
   return (
-    <div className="w-full flex flex-col items-center gap-12 py-4">
-      {/* Note Display Area */}
-      <div className="relative flex flex-col items-center">
+    <div className="w-full flex flex-col items-center gap-10 py-2 overflow-hidden">
+      {/* Note Display Area - Fixed dimensions to prevent layout shifts */}
+      <div className="relative flex flex-col items-center justify-center h-40 w-full">
         <div 
-          className={`text-[8rem] font-black tracking-tighter leading-none transition-all duration-500 ease-soft-overshoot ${
+          className={`text-[clamp(5rem,20vw,8rem)] font-black tracking-tighter leading-none transition-all duration-500 ease-soft-overshoot flex items-baseline justify-center select-none ${
             isTuned ? 'scale-110' : 'scale-100'
           }`}
           style={{ 
@@ -46,26 +50,28 @@ export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGauge
                 : 'none'
           }}
         >
-          {note === '-' ? '–' : note}
-          <span className="text-4xl font-black ml-2 opacity-30 tabular-nums">
+          <span className="min-w-[1.2em] text-center">
+            {note === '-' ? '–' : note}
+          </span>
+          <span className="text-[0.4em] font-black ml-1 opacity-30 tabular-nums w-8">
             {note === '-' ? '' : octave}
           </span>
         </div>
         
         {/* Status Label */}
-        <div className="absolute -bottom-10 whitespace-nowrap overflow-hidden">
+        <div className="absolute -bottom-4 left-0 right-0 flex justify-center h-4 overflow-hidden pointer-events-none">
           <span 
-            className={`text-[11px] font-black uppercase tracking-[0.5em] transition-all duration-700 ease-soft-overshoot block ${
+            className={`text-[11px] font-black uppercase tracking-[0.5em] transition-all duration-700 ease-soft-overshoot ${
               isTuned ? 'translate-y-0 opacity-100 text-accent-mint' : 'translate-y-full opacity-0 text-foreground-muted'
             }`}
           >
-            Perfect Pitch
+            {t.perfectPitch}
           </span>
         </div>
       </div>
 
       {/* Linear Gauge Container */}
-      <div className="w-full max-w-sm space-y-10 mt-6">
+      <div className="w-full max-w-sm space-y-10 mt-4">
         <div className="relative h-16 flex items-center">
           {/* Background Track */}
           <div className="absolute inset-0 h-[2px] bg-indicator-track top-1/2 -translate-y-1/2 w-full rounded-full overflow-hidden">
@@ -76,16 +82,16 @@ export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGauge
           </div>
 
           {/* Scale Markers */}
-          <div className="absolute inset-0 flex justify-between items-center px-0 text-[10px] font-black text-foreground-muted/60 font-mono tracking-tighter">
+          <div className="absolute inset-0 flex justify-between items-center px-0 text-[10px] font-black text-foreground-muted/60 font-mono tracking-tighter pointer-events-none">
             <span>-50</span>
             <span className="opacity-0">0</span>
             <span>+50</span>
           </div>
 
-          {/* Guidance Labels */}
-          <div className="absolute -top-8 inset-x-0 flex justify-between text-[11px] font-black uppercase tracking-[0.3em]">
-            <span className={`transition-all duration-300 ${cents < -3.5 ? 'text-accent-magenta scale-110' : 'text-foreground-muted/40 opacity-50'}`}>Aperte</span>
-            <span className={`transition-all duration-300 ${cents > 3.5 ? 'text-accent-magenta scale-110' : 'text-foreground-muted/40 opacity-50'}`}>Afrouxe</span>
+          {/* Guidance Labels - Fixed positions */}
+          <div className="absolute -top-8 inset-x-0 flex justify-between text-[11px] font-black uppercase tracking-[0.3em] pointer-events-none">
+            <span className={`transition-all duration-300 w-20 text-left ${cents < -3.5 ? 'text-accent-magenta scale-110' : 'text-foreground-muted/40 opacity-50'}`}>{t.tighten}</span>
+            <span className={`transition-all duration-300 w-20 text-right ${cents > 3.5 ? 'text-accent-magenta scale-110' : 'text-foreground-muted/40 opacity-50'}`}>{t.loosen}</span>
           </div>
 
           {/* Dynamic Marker (The "Needle") */}

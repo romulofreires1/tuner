@@ -28,6 +28,12 @@ export function useTuner() {
   const centsHistoryRef = useRef<number[]>([]);
   const instrumentRef = useRef<InstrumentType>('guitar');
   const { tuner, updateTuner } = useAppStore();
+  
+  // Use a ref for tuner state to avoid callback recreation
+  const tunerRef = useRef(tuner);
+  useEffect(() => {
+    tunerRef.current = tuner;
+  }, [tuner]);
 
   const analyzeAudio = useCallback(async () => {
     const now = performance.now();
@@ -54,7 +60,6 @@ export function useTuner() {
       let targetCents = getMedian(centsHistoryRef.current);
       
       // Efeito "Magnético": se estiver a menos de 1 cent do centro, trava no zero.
-      // Se estiver a menos de 3 cents, reduz a influência da mudança.
       if (Math.abs(targetCents) < 1) {
         targetCents = 0;
       }
@@ -88,7 +93,7 @@ export function useTuner() {
         centsHistoryRef.current = [];
         smoothedCentsRef.current = lerp(smoothedCentsRef.current, 0, 0.03);
         
-        if (tuner.pitch !== null || Math.abs(smoothedCentsRef.current) > 0.1) {
+        if (tunerRef.current.pitch !== null || Math.abs(smoothedCentsRef.current) > 0.1) {
           updateTuner(
             null, 
             0, 
@@ -103,7 +108,7 @@ export function useTuner() {
     }
 
     animationRef.current = requestAnimationFrame(analyzeAudio);
-  }, [updateTuner, tuner.pitch]);
+  }, [updateTuner]); // Removed tuner.pitch dependency
 
   const startTuner = useCallback(async () => {
     if (animationRef.current) return;

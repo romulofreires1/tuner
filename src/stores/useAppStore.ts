@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { InstrumentType, TuningConfig, INSTRUMENT_CONFIGS } from '@/lib/audio/instrumentConfigs';
 
+export type Language = 'pt' | 'en';
+
 interface TunerState {
   pitch: number | null;
   clarity: number;
@@ -20,11 +22,13 @@ interface MetronomeState {
 }
 
 interface AppState {
+  language: Language;
   instrument: InstrumentType;
   tuning: TuningConfig;
   audioPermission: 'idle' | 'requesting' | 'granted' | 'denied' | 'error';
   tuner: TunerState;
   metronome: MetronomeState;
+  setLanguage: (language: Language) => void;
   setInstrument: (instrument: InstrumentType) => void;
   setTuning: (tuning: TuningConfig) => void;
   setAudioPermission: (status: AppState['audioPermission']) => void;
@@ -35,6 +39,7 @@ interface AppState {
 const defaultTuning = INSTRUMENT_CONFIGS.guitar[0];
 
 export const useAppStore = create<AppState>((set) => ({
+  language: 'pt',
   instrument: 'guitar',
   tuning: defaultTuning,
   audioPermission: 'idle',
@@ -56,6 +61,8 @@ export const useAppStore = create<AppState>((set) => ({
     timeSignature: [4, 4],
     currentBeat: 0,
   },
+
+  setLanguage: (language) => set({ language }),
 
   setInstrument: (instrument) =>
     set((state) => ({

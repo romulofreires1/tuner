@@ -1,11 +1,15 @@
 'use client';
 
 import { useAppStore } from '@/stores/useAppStore';
+import { translations } from '@/lib/translations';
 
 export function MetronomeDisplay() {
-  const { metronome } = useAppStore();
+  const { metronome, language } = useAppStore();
+  const t = translations[language];
 
   const getTempoName = (bpm: number) => {
+    // Italian tempo markings are universal in music, but we can localize them if needed.
+    // For now, keeping the markings but ensuring the status text is translated.
     if (bpm <= 40) return 'Grave';
     if (bpm <= 60) return 'Largo';
     if (bpm <= 66) return 'Larghetto';
@@ -23,7 +27,7 @@ export function MetronomeDisplay() {
       <div className={`text-[11px] font-black uppercase tracking-[0.5em] mb-3 transition-colors duration-500 ${
         metronome.isPlaying ? 'text-accent-mint animate-pulse' : 'text-accent-magenta'
       }`}>
-        {metronome.isPlaying ? 'Em Execução' : 'Pronto'}
+        {metronome.isPlaying ? t.running : t.ready}
       </div>
       <div className="text-base font-black text-foreground-secondary tracking-[0.2em] uppercase">
         {getTempoName(metronome.bpm)}

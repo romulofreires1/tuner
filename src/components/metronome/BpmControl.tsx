@@ -1,13 +1,15 @@
 'use client';
 
 import { useAppStore } from '@/stores/useAppStore';
+import { translations } from '@/lib/translations';
 
 interface BpmControlProps {
   onBpmChange: (bpm: number) => void;
 }
 
 export function BpmControl({ onBpmChange }: BpmControlProps) {
-  const { metronome } = useAppStore();
+  const { metronome, language } = useAppStore();
+  const t = translations[language];
 
   const adjustBpm = (delta: number) => {
     const newBpm = Math.max(30, Math.min(300, metronome.bpm + delta));
@@ -21,7 +23,7 @@ export function BpmControl({ onBpmChange }: BpmControlProps) {
           onClick={() => adjustBpm(-1)}
           onContextMenu={(e) => { e.preventDefault(); adjustBpm(-5); }}
           className="w-14 h-14 flex items-center justify-center rounded-[1.25rem] bg-background-elevated border-2 border-indicator-border text-foreground-primary hover:bg-accent-magenta hover:border-accent-magenta hover:text-foreground-primary active:scale-90 transition-all duration-300 shadow-lg"
-          title="Diminuir (Clique direito para -5)"
+          title={t.decreaseBpm}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
         </button>
@@ -36,7 +38,7 @@ export function BpmControl({ onBpmChange }: BpmControlProps) {
           onClick={() => adjustBpm(1)}
           onContextMenu={(e) => { e.preventDefault(); adjustBpm(5); }}
           className="w-14 h-14 flex items-center justify-center rounded-[1.25rem] bg-background-elevated border-2 border-indicator-border text-foreground-primary hover:bg-accent-magenta hover:border-accent-magenta hover:text-foreground-primary active:scale-90 transition-all duration-300 shadow-lg"
-          title="Aumentar (Clique direito para +5)"
+          title={t.increaseBpm}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
