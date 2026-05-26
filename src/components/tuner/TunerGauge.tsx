@@ -33,6 +33,8 @@ export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGauge
   const neutralColor = 'oklch(98% 0.01 270)'; // Pristine
   const mutedColor = 'oklch(30% 0.08 270)'; // Dark Track
 
+  const showNote = note !== '-';
+
   return (
     <div className="w-full flex flex-col items-center gap-10 py-2 overflow-hidden">
       {/* Note Display Area - Fixed dimensions to prevent layout shifts */}
@@ -50,12 +52,20 @@ export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGauge
                 : 'none'
           }}
         >
-          <span className="min-w-[1.2em] text-center">
-            {note === '-' ? '–' : note}
-          </span>
-          <span className="text-[0.4em] font-black ml-1 opacity-30 tabular-nums w-8">
-            {note === '-' ? '' : octave}
-          </span>
+          {showNote ? (
+            <>
+              <span className="min-w-[1.2em] text-center">
+                {note}
+              </span>
+              <span className="text-[0.4em] font-black ml-1 opacity-30 tabular-nums w-8">
+                {octave}
+              </span>
+            </>
+          ) : (
+            <span className="text-center opacity-20">
+              –
+            </span>
+          )}
         </div>
         
         {/* Status Label */}
