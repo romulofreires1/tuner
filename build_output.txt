@@ -1,0 +1,39 @@
+
+> tuner@0.1.0 build
+> next build
+
+   ▲ Next.js 15.1.0
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: /home/romulo/projects/tuner/public/sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/6) ...
+   Generating static pages (1/6) 
+   Generating static pages (2/6) 
+   Generating static pages (4/6) 
+ ✓ Generating static pages (6/6)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/3) ...
+ ✓ Exporting (3/3)
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    10.7 kB         122 kB
+├ ○ /_not-found                          977 B           109 kB
+├ ○ /doacoes                             4.03 kB         116 kB
+└ ○ /icon.svg                            0 B                0 B
++ First Load JS shared by all            108 kB
+  ├ chunks/455-88cac763f950aaf5.js       52.7 kB
+  ├ chunks/4bd1b696-fd4c7e7db1108dbc.js  52.9 kB
+  └ other shared chunks (total)          1.97 kB
+
+
+○  (Static)  prerendered as static content
+

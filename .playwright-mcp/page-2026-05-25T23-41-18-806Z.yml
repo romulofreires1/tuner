@@ -1,0 +1,53 @@
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Tuner & Metronome" [level=1] [ref=e5]
+      - generic [ref=e6]:
+        - heading "Instrumento" [level=2] [ref=e7]
+        - generic [ref=e8]:
+          - button "Guitarra" [ref=e9] [cursor=pointer]
+          - button "Baixo" [active] [ref=e10] [cursor=pointer]
+          - button "Ukulele" [ref=e11] [cursor=pointer]
+          - button "Violino" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - heading "Afinador" [level=2] [ref=e14]
+        - button "Iniciar Tuner" [ref=e17] [cursor=pointer]
+      - generic [ref=e18]:
+        - heading "Metrônomo" [level=2] [ref=e19]
+        - generic [ref=e27]:
+          - generic [ref=e28]: "120"
+          - generic [ref=e29]: BPM
+          - generic [ref=e30]:
+            - generic [ref=e31]: "4"
+            - generic [ref=e32]: /
+            - generic [ref=e33]: "4"
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - button "-" [ref=e37] [cursor=pointer]
+            - slider [ref=e39] [cursor=pointer]: "120"
+            - button "+" [ref=e40] [cursor=pointer]
+          - generic [ref=e41]:
+            - button "60" [ref=e42] [cursor=pointer]
+            - button "90" [ref=e43] [cursor=pointer]
+            - button "120" [ref=e44] [cursor=pointer]
+            - button "150" [ref=e45] [cursor=pointer]
+            - button "180" [ref=e46] [cursor=pointer]
+          - generic [ref=e47]:
+            - generic [ref=e48]: "Fórmula:"
+            - combobox [ref=e49]:
+              - option "2/4"
+              - option "3/4"
+              - option "4/4" [selected]
+              - option "6/8"
+              - option "9/8"
+              - option "12/8"
+        - button [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+  - status [ref=e55]:
+    - generic [ref=e56]:
+      - img [ref=e58]
+      - generic [ref=e60]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+  - alert [ref=e54]
