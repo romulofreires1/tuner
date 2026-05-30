@@ -27,9 +27,9 @@ class AudioEngineClass {
     analyzerNodeInstance = ctx.createAnalyser();
     // Aumentando para 32768 para máxima resolução possível no navegador.
     // Isso ajuda a separar fundamentais de harmônicos muito próximos.
-    analyzerNodeInstance.fftSize = 32768;
+    analyzerNodeInstance.fftSize = 8192;
     // Voltando para um valor moderado para não "engessar" os dados
-    analyzerNodeInstance.smoothingTimeConstant = 0.2;
+    analyzerNodeInstance.smoothingTimeConstant = 0.1;
     
     return analyzerNodeInstance;
   }

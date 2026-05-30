@@ -82,7 +82,7 @@ export function useTuner() {
 
       const currentNoteKey = `${detectedNote}${detectedOctave}`;
       noteHistoryRef.current.push(currentNoteKey);
-      if (noteHistoryRef.current.length > 8) { // Janela maior para mais estabilidade
+      if (noteHistoryRef.current.length > 6) { // Janela maior para mais estabilidade
         noteHistoryRef.current.shift();
       }
 
@@ -99,7 +99,7 @@ export function useTuner() {
       }
 
       // Exige 60% de dominância no histórico
-      if (maxCount >= 5) {
+      if (maxCount >= 4) {
         const match = mostFrequentNoteKey.match(/^([A-G]#?)(\d+)$/);
         if (match) {
           stableNoteRef.current = match[1];
