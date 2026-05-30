@@ -20,16 +20,29 @@ function getNoteFrequency(midi: number): number {
   return A4 * Math.pow(2, (midi - 69) / 12);
 }
 
+// Notas que são frequentemente confundidas por serem harmônicos fortes (Quintas)
+const HARMONIC_RELATIONS: Record<string, string> = {
+  'D': 'G', // Ré é o 3º harmônico do Sol
+  'B': 'E', // Si é o 3º harmônico do Mi
+  'A': 'D', // Lá é o 3º harmônico do Ré
+};
+
 export function useTuner() {
   const animationRef = useRef<number | null>(null);
   const smoothedCentsRef = useRef<number>(0);
   const lastUpdateRef = useRef<number>(0);
   const consecutiveLowClarityRef = useRef<number>(0);
   const centsHistoryRef = useRef<number[]>([]);
+  
+  // Estabilização de nota avançada
+  const noteHistoryRef = useRef<string[]>([]);
+  const stableNoteRef = useRef<string>('-');
+  const stableOctaveRef = useRef<number>(4);
+  const lastConfidentNoteRef = useRef<string>('-');
+
   const instrumentRef = useRef<InstrumentType>('guitar');
   const { tuner, updateTuner } = useAppStore();
   
-  // Use a ref for tuner state to avoid callback recreation
   const tunerRef = useRef(tuner);
   useEffect(() => {
     tunerRef.current = tuner;
@@ -37,7 +50,7 @@ export function useTuner() {
 
   const analyzeAudio = useCallback(async () => {
     const now = performance.now();
-    if (now - lastUpdateRef.current < 45) { // Ligeiramente mais lento para média mais estável
+    if (now - lastUpdateRef.current < 16) { 
       animationRef.current = requestAnimationFrame(analyzeAudio);
       return;
     }
@@ -48,29 +61,64 @@ export function useTuner() {
     const data = getFrequencyData(analyzer);
     const pitchResult: PitchResult | null = detectPitch(data, ctx.sampleRate);
 
-    if (pitchResult && pitchResult.clarity > 0.8) {
+    if (pitchResult && pitchResult.clarity > 0.6) {
       consecutiveLowClarityRef.current = 0;
       
-      // Histórico maior (7) para eliminar mais jitter
+      let detectedNote = pitchResult.note;
+      let detectedOctave = pitchResult.octave;
+
+      // LÓGICA ANTI-HARMÔNICO (VETO DE QUINTA)
+      // Se detectarmos D mas estávamos confiantes no G, ou se o volume for alto (ataque),
+      // verificamos se não é apenas o harmônico do G.
+      if (HARMONIC_RELATIONS[detectedNote] === lastConfidentNoteRef.current) {
+        // Se a oitava for maior que a esperada para a fundamental, é quase certo que é harmônico
+        if (detectedOctave > 2) { 
+            // Mantemos a nota anterior para evitar o pulo visual
+            detectedNote = lastConfidentNoteRef.current;
+            // Ajustamos a oitava para a fundamental provável se necessário
+        }
+      }
+
+      const currentNoteKey = `${detectedNote}${detectedOctave}`;
+      noteHistoryRef.current.push(currentNoteKey);
+      if (noteHistoryRef.current.length > 8) { // Janela maior para mais estabilidade
+        noteHistoryRef.current.shift();
+      }
+
+      const counts: Record<string, number> = {};
+      let maxCount = 0;
+      let mostFrequentNoteKey = currentNoteKey;
+
+      for (const n of noteHistoryRef.current) {
+        counts[n] = (counts[n] || 0) + 1;
+        if (counts[n] > maxCount) {
+          maxCount = counts[n];
+          mostFrequentNoteKey = n;
+        }
+      }
+
+      // Exige 60% de dominância no histórico
+      if (maxCount >= 5) {
+        const match = mostFrequentNoteKey.match(/^([A-G]#?)(\d+)$/);
+        if (match) {
+          stableNoteRef.current = match[1];
+          stableOctaveRef.current = parseInt(match[2], 10);
+          lastConfidentNoteRef.current = stableNoteRef.current;
+        }
+      }
+      
       centsHistoryRef.current.push(pitchResult.cents);
-      if (centsHistoryRef.current.length > 7) {
+      if (centsHistoryRef.current.length > 5) {
         centsHistoryRef.current.shift();
       }
       
       let targetCents = getMedian(centsHistoryRef.current);
-      
-      // Efeito "Magnético": se estiver a menos de 1 cent do centro, trava no zero.
-      if (Math.abs(targetCents) < 1) {
-        targetCents = 0;
-      }
+      if (Math.abs(targetCents) < 1) targetCents = 0;
 
       const diff = Math.abs(targetCents - smoothedCentsRef.current);
-      
-      // Suavização ultra-agressiva para mudanças pequenas (estabilização)
-      // e resposta mais rápida para mudanças grandes (nova nota)
-      let lerpFactor = 0.08;
-      if (diff < 1) lerpFactor = 0.03;
-      if (diff > 10) lerpFactor = 0.2;
+      let lerpFactor = 0.15;
+      if (diff < 1) lerpFactor = 0.06;
+      if (diff > 10) lerpFactor = 0.3;
       
       smoothedCentsRef.current = lerp(smoothedCentsRef.current, targetCents, lerpFactor);
 
@@ -81,34 +129,31 @@ export function useTuner() {
         pitchResult.frequency,
         pitchResult.clarity,
         pitchResult.volume,
-        pitchResult.note,
-        pitchResult.octave,
+        stableNoteRef.current,
+        stableOctaveRef.current,
         smoothedCentsRef.current,
         targetFreq
       );
     } else {
       consecutiveLowClarityRef.current++;
       
-      if (consecutiveLowClarityRef.current > 6) {
+      if (consecutiveLowClarityRef.current > 4) {
         centsHistoryRef.current = [];
-        smoothedCentsRef.current = lerp(smoothedCentsRef.current, 0, 0.03);
+        noteHistoryRef.current = [];
+        lastConfidentNoteRef.current = '-';
+        smoothedCentsRef.current = lerp(smoothedCentsRef.current, 0, 0.1);
         
         if (tunerRef.current.pitch !== null || Math.abs(smoothedCentsRef.current) > 0.1) {
           updateTuner(
-            null, 
-            0, 
-            0,
-            '-', 
-            4, 
-            smoothedCentsRef.current, 
-            440
+            null, 0, 0, '-', 4, 
+            smoothedCentsRef.current, 440
           );
         }
       }
     }
 
     animationRef.current = requestAnimationFrame(analyzeAudio);
-  }, [updateTuner]); // Removed tuner.pitch dependency
+  }, [updateTuner]);
 
   const startTuner = useCallback(async () => {
     if (animationRef.current) return;

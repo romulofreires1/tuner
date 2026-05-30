@@ -49,16 +49,16 @@ export function detectPitch(data: Float32Array, sampleRate: number): PitchResult
   const volume = calculateRMS(data);
   
   // Se o volume estiver muito baixo (ruído de fundo ou interferência fraca), desconsidera
-  // 0.01 é um valor baixo mas que filtra silêncio e ruído de ventoinha
-  if (volume < 0.01) {
+  // 0.005 é mais sensível para capturar notas que estão sumindo (decay)
+  if (volume < 0.005) {
     return null;
   }
 
   const detector = getDetector(data.length);
   const [frequency, clarity] = detector.findPitch(data, sampleRate);
   
-  // Aumentando a exigência de claridade se o volume for baixo
-  const clarityThreshold = volume < 0.05 ? 0.85 : 0.7;
+  // Limiar de claridade mais permissivo para melhorar a detecção em ambientes com algum ruído
+  const clarityThreshold = volume < 0.02 ? 0.8 : 0.6;
 
   if (clarity < clarityThreshold || frequency < 30 || frequency > 4000) {
     return null;

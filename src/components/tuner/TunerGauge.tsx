@@ -106,7 +106,7 @@ export function TunerGauge({ cents, note, octave, clarity, isTuned }: TunerGauge
 
           {/* Dynamic Marker (The "Needle") */}
           <div 
-            className="absolute top-0 bottom-0 w-[3px] transition-all duration-150 ease-expo-out z-10 rounded-full"
+            className="absolute top-0 bottom-0 w-[3px] transition-all duration-75 ease-out z-10 rounded-full"
             style={{ 
               left: `${mounted ? position : 50}%`,
               opacity: isActive ? 1 : 0.1,

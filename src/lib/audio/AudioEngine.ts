@@ -25,23 +25,27 @@ class AudioEngineClass {
 
     const ctx = await this.getContext();
     analyzerNodeInstance = ctx.createAnalyser();
-    // 16384 é o máximo e oferece a melhor resolução de frequência possível (approx 2.7Hz por bin a 44.1kHz)
-    analyzerNodeInstance.fftSize = 16384;
-    analyzerNodeInstance.smoothingTimeConstant = 0.85;
+    // Aumentando para 32768 para máxima resolução possível no navegador.
+    // Isso ajuda a separar fundamentais de harmônicos muito próximos.
+    analyzerNodeInstance.fftSize = 32768;
+    // Voltando para um valor moderado para não "engessar" os dados
+    analyzerNodeInstance.smoothingTimeConstant = 0.2;
     
     return analyzerNodeInstance;
   }
 
-  async getFilter(minFreq = 40, maxFreq = 2000): Promise<BiquadFilterNode> {
+  async getFilter(): Promise<BiquadFilterNode> {
     if (filterNodeInstance) {
       return filterNodeInstance;
     }
 
     const ctx = await this.getContext();
     filterNodeInstance = ctx.createBiquadFilter();
-    filterNodeInstance.type = 'bandpass';
-    filterNodeInstance.frequency.value = (minFreq + maxFreq) / 2;
-    filterNodeInstance.Q.value = 1;
+    
+    // Mudando para um Notch Filter (ou removendo o filtro agressivo) 
+    // porque o problema parece ser a detecção do Pitchy pegando o primeiro pico forte.
+    // Vamos usar 'allpass' aqui e tratar a inteligência na detecção de nota.
+    filterNodeInstance.type = 'allpass'; 
 
     return filterNodeInstance;
   }
