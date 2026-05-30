@@ -72,9 +72,10 @@ export function useTuner() {
       // verificamos se não é apenas o harmônico do G.
       if (HARMONIC_RELATIONS[detectedNote] === lastConfidentNoteRef.current) {
         // Se a oitava for maior que a esperada para a fundamental, é quase certo que é harmônico
-        if (detectedOctave > 2) { 
+        if (detectedOctave > stableOctaveRef.current) { 
             // Mantemos a nota anterior para evitar o pulo visual
             detectedNote = lastConfidentNoteRef.current;
+            detectedOctave = stableOctaveRef.current;
             // Ajustamos a oitava para a fundamental provável se necessário
         }
       }
