@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { TunerGauge } from '@/components/tuner/TunerGauge';
 import { MetronomeDisplay } from '@/components/metronome/MetronomeDisplay';
 import { BpmControl } from '@/components/metronome/BpmControl';
@@ -21,7 +22,7 @@ export default function Home() {
   const { startTuner, stopTuner } = useTuner();
   const { permissionStatus, errorMessage, requestPermission } = useAudioPermissions();
   
-  const t = translations[language];
+  const t = translations[language] as any;
 
   const handleStartTuner = useCallback(async () => {
     const stream = await requestPermission();
@@ -152,11 +153,33 @@ export default function Home() {
           )}
         </div>
 
-        <footer className="mt-auto py-8 sm:py-12 flex flex-col items-center gap-4">
-          <img src="/logo-mark.svg" alt="" className="w-6 h-6 opacity-20 grayscale" />
-          <p className="text-[9px] sm:text-[10px] font-black text-foreground-muted/50 tracking-[0.3em] sm:tracking-[0.5em] uppercase text-center">
-            {t.professionalPrecision}
-          </p>
+        <footer className="mt-auto py-8 sm:py-12 flex flex-col items-center gap-6">
+          <div className="flex items-center gap-4">
+            <a 
+              href="https://buymeacoffee.com/romulofreil"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-black tracking-[0.2em] uppercase text-foreground-muted hover:text-foreground-primary transition-colors"
+            >
+              Apoie o Projeto
+            </a>
+            <span className="w-1 h-1 rounded-full bg-foreground-muted/30" />
+            <a 
+              href="https://buymeacoffee.com/romulofreil" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1 bg-[#FFDD00] text-black rounded-full text-[9px] font-black uppercase tracking-wider hover:scale-105 transition-all shadow-lg"
+            >
+              Compre um café
+            </a>
+          </div>
+          
+          <div className="flex flex-col items-center gap-4">
+            <img src="/logo-mark.svg" alt="" className="w-6 h-6 opacity-20 grayscale" />
+            <p className="text-[9px] sm:text-[10px] font-black text-foreground-muted/50 tracking-[0.3em] sm:tracking-[0.5em] uppercase text-center">
+              Precisão Profissional • Studio Grade
+            </p>
+          </div>
         </footer>
       </div>
     </main>
