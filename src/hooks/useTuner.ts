@@ -109,7 +109,7 @@ export function useTuner() {
       }
       
       centsHistoryRef.current.push(pitchResult.cents);
-      if (centsHistoryRef.current.length > 5) {
+      if (centsHistoryRef.current.length > 12) {
         centsHistoryRef.current.shift();
       }
       
@@ -117,9 +117,9 @@ export function useTuner() {
       if (Math.abs(targetCents) < 1) targetCents = 0;
 
       const diff = Math.abs(targetCents - smoothedCentsRef.current);
-      let lerpFactor = 0.15;
-      if (diff < 1) lerpFactor = 0.06;
-      if (diff > 10) lerpFactor = 0.3;
+      let lerpFactor = 0.08;
+      if (diff < 2) lerpFactor = 0.03;
+      if (diff > 10) lerpFactor = 0.25;
       
       smoothedCentsRef.current = lerp(smoothedCentsRef.current, targetCents, lerpFactor);
 
